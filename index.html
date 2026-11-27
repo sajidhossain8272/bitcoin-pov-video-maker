@@ -37,6 +37,10 @@
   canvas { display:block; width:min(100%,360px); height:auto; aspect-ratio:9/16; background:#fff; border-radius:12px; box-shadow:0 8px 30px #11131818; }
   .preview-note { font-size:11px; color:var(--muted); text-align:center; margin-top:10px; }
   .smallprint { color:#777d87; font-size:11px; line-height:1.55; margin:13px 2px 0; }
+  .seo { grid-column:1/-1; } .seo h2 { font-size:16px; margin:0 0 4px; }
+  textarea { width:100%; border:1px solid #dfe2e7; border-radius:11px; padding:11px; font:inherit; font-size:14px; line-height:1.45; color:#111318; resize:vertical; outline:none; }
+  .seo .row { margin-top:14px; } .seo .actions { margin-top:8px; } .seo button { padding:9px 13px; }
+  .cnt { float:right; font-weight:600; color:var(--muted); } .cnt.over { color:#c62828; }
   @media (min-width:700px) { .layout { grid-template-columns:310px 1fr; align-items:start; } }
 </style>
 </head>
@@ -77,6 +81,16 @@
     <section class="panel">
       <div class="preview-wrap"><canvas id="video" width="1080" height="1920" aria-label="Portrait Bitcoin investment graph preview"></canvas></div>
       <div class="preview-note">Portrait 9:16 · 1080 × 1920 · White background</div>
+    </section>
+    <section class="panel seo" id="seo" hidden>
+      <h2>YouTube title, description &amp; tags</h2>
+      <div class="hint">Auto-written from your values and timeline, within YouTube's limits (title 100, description 5,000, tags 500 characters). Edit freely. Use the same honest "simulation" wording when you publish.</div>
+      <div class="row"><label for="seoTitle">TITLE <span class="cnt" id="tCnt"></span></label><input id="seoTitle" maxlength="140">
+        <div class="actions"><button class="secondary" id="nextTitle">Another title</button><button class="secondary" data-copy="seoTitle">Copy title</button></div></div>
+      <div class="row"><label for="seoDesc">DESCRIPTION <span class="cnt" id="dCnt"></span></label><textarea id="seoDesc" rows="14"></textarea>
+        <div class="actions"><button class="secondary" data-copy="seoDesc">Copy description</button></div></div>
+      <div class="row"><label for="seoTags">TAGS (comma separated) <span class="cnt" id="gCnt"></span></label><textarea id="seoTags" rows="5"></textarea>
+        <div class="actions"><button class="secondary" data-copy="seoTags">Copy tags</button></div></div>
     </section>
   </div>
 </div>
@@ -288,9 +302,63 @@
       sourceNote="Daily closes: "+h.src+" (UTC)"+(live?" · Live: "+live.src:"");
       const e=out[out.length-1];
       setStatus(`${out.length.toLocaleString()} days · ${fullDate(out[0].date)} → ${fullDate(e.date)}${live?" (live "+money(live.price)+" via "+live.src+")":""} · ${buys} buy${buys===1?"":"s"}, ${money(e.invested)} invested → ${money(e.value)}.`+(c.end>=t&&!live?" Live price unavailable, so the chart ends at the last daily close.":""));
-      animate();
-    }catch(err){series=[];draw(0);setStatus(err.message||"Could not load prices.",true);}
+      animate(); buildSeo();
+    }catch(err){series=[];$("seo").hidden=true;draw(0);setStatus(err.message||"Could not load prices.",true);}
     finally{generateBtn.disabled=false;busy=false;}
+  }
+
+  // ---------- YouTube SEO ----------
+  let titles=[], titleIdx=0;
+  const tagLen=a=>a.reduce((n,t)=>n+t.length+(/\s/.test(t)?2:0),0)+Math.max(0,a.length-1);
+  function counters(){
+    const t=$("seoTitle").value.length, d=$("seoDesc").value.length, g=tagLen($("seoTags").value.split(",").map(x=>x.trim()).filter(Boolean));
+    for(const [id,n,lim,extra] of [["tCnt",t,100,t>60?" · may be cut off in search":""],["dCnt",d,5000,""],["gCnt",g,500,""]]){
+      $(id).textContent=n+" / "+lim+extra; $(id).className="cnt"+(n>lim?" over":"");
+    }
+  }
+  function buildSeo(){
+    const c=cfg, e=series[series.length-1], y0=c.start.slice(0,4), y1=e.date.slice(0,4);
+    const span=Math.max(1,Math.round((new Date(e.date)-new Date(series[0].date))/31557600000));
+    const gain=e.invested>0?(e.value/e.invested-1)*100:0, profit=e.value-e.invested;
+    const fin=e.value>=1000?compact(e.value):money(e.value);
+    const per=c.every===1?"a "+c.unit:"every "+c.every+" "+c.unit+"s", perL=c.every===1?"every "+c.unit:per;
+    const freq={day:"daily",week:"weekly",month:"monthly",year:"yearly"}[c.unit];
+    const upTo=c.end>=todayUTC()?"Today":"in "+y1, a0=money(c.init), r0=money(c.recAmt);
+    const rs=c.init>0?`${a0} + ${r0} ${per}`:`${r0} ${per}`;
+    titles=(c.rec?[
+      `${rs} in Bitcoin Since ${y0}: ${fin} Result`,
+      `What If You Bought Bitcoin ${r0} ${perL} Since ${y0}?`,
+      `POV: You DCA'd ${rs} Into Bitcoin (${y0}-${y1})`,
+      `Bitcoin DCA Simulation: ${rs} for ${span} Years`,
+      `${rs} in Bitcoin for ${span} Years = ${fin}?`
+    ]:[
+      `What If You Invested ${a0} in Bitcoin in ${y0}?`,
+      `${a0} in Bitcoin in ${y0} = ${fin} ${upTo}`,
+      `POV: You Put ${a0} in Bitcoin in ${y0}`,
+      `${a0} Bitcoin Investment (${y0}-${y1}): What Happened?`,
+      `I Simulated ${a0} in Bitcoin for ${span} Years`
+    ]).map(t=>t.slice(0,100));
+    titleIdx=0;
+    const plan=c.rec?(c.init>0?`${a0} on day one + ${r0} ${perL}`:`${r0} ${perL}`):`${a0} lump sum`;
+    const d0=fullDate(series[0].date), d1=fullDate(e.date);
+    const desc=[
+      `What if you invested in Bitcoin back in ${y0}? This historical simulation shows ${plan} from ${d0} to ${d1} growing to ${money(e.value)} (${gain>=0?"+":""}${gain.toLocaleString("en-US",{maximumFractionDigits:1})}%).`,
+      "","📊 THE NUMBERS",
+      `• Plan: ${plan}`,`• Period: ${d0} → ${d1} (about ${span} years)`,
+      `• Total invested: ${money(e.invested)}`,`• Value at the end: ${money(e.value)}`,
+      `• ${profit>=0?"Profit":"Loss"}: ${money(Math.abs(profit))}`,
+      "","Want a different amount, start date or timeline? Comment below and I'll simulate it next!",
+      "👍 Like and subscribe for more Bitcoin POV simulations.",
+      "","⚠️ DISCLAIMER: This is a hypothetical, hindsight-based simulation using historical BTC/USD daily prices (Coin Metrics), before fees, taxes and spreads. It is NOT my real trades or balance, not financial advice and not a prediction. Crypto is volatile and you can lose money. Do your own research.",
+      "","#Bitcoin #BTC #Shorts"
+    ].join("\n").slice(0,4900);
+    const want=["bitcoin",`bitcoin ${y0}`,`bitcoin ${y0} to ${y1}`,`invest ${a0} in bitcoin`,"what if you invested in bitcoin","bitcoin pov","bitcoin investment","btc",
+      ...(c.rec?[`${r0} ${perL} bitcoin`,`${freq} bitcoin investing`,"bitcoin dca","dollar cost averaging bitcoin"]:[`${a0} bitcoin ${y0}`]),
+      `${span} years of bitcoin`,"bitcoin price history","bitcoin simulation","bitcoin returns","how much would bitcoin be worth","bitcoin shorts","crypto investing",
+      "bitcoin for beginners","bitcoin history","cryptocurrency","invest in bitcoin","bitcoin profit","btc price","crypto","bitcoin 10 years ago","bitcoin millionaire"];
+    const tags=[]; for(const t of want){ if(tags.some(x=>x.toLowerCase()===t.toLowerCase())) continue; if(tagLen([...tags,t])<=480) tags.push(t); }
+    $("seoTitle").value=titles[0]; $("seoDesc").value=desc; $("seoTags").value=tags.join(", ");
+    $("seo").hidden=false; counters();
   }
 
   // ---------- Export ----------
@@ -359,6 +427,13 @@
   const syncRec=()=>recWrap.classList.toggle("on",recOn.checked);
   recOn.addEventListener("change",syncRec); syncRec();
   cfg=readCfg(); draw(0);
+  $("nextTitle").addEventListener("click",()=>{if(!titles.length)return;titleIdx=(titleIdx+1)%titles.length;$("seoTitle").value=titles[titleIdx];counters();});
+  ["seoTitle","seoDesc","seoTags"].forEach(i=>$(i).addEventListener("input",counters));
+  document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",async()=>{
+    const el=$(b.dataset.copy), t=b.textContent;
+    try{await navigator.clipboard.writeText(el.value);}catch(e){el.select();document.execCommand("copy");}
+    b.textContent="Copied ✓"; setTimeout(()=>b.textContent=t,1200);
+  }));
   generateBtn.addEventListener("click",generate);
   replayBtn.addEventListener("click",()=>{if(series.length&&!busy)animate();});
   exportBtn.addEventListener("click",exportVideo);
