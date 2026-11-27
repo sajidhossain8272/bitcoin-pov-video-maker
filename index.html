@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Bitcoin POV Video Maker</title>
+<style>
+  :root { color-scheme: light; --ink:#111318; --muted:#777d87; --line:#e8e9ed; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f5f6f8; color:var(--ink); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .shell { width:min(100%,760px); margin:0 auto; padding:22px 16px 40px; }
+  header { margin:4px 0 18px; }
+  h1 { font-size:22px; letter-spacing:-.6px; margin:0 0 5px; }
+  .sub { color:var(--muted); font-size:13px; line-height:1.5; }
+  .layout { display:grid; grid-template-columns:1fr; gap:16px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px; box-shadow:0 8px 28px #15192308; }
+  .fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  label { display:block; font-size:12px; font-weight:700; color:#555b65; margin-bottom:7px; }
+  input, select { width:100%; border:1px solid #dfe2e7; border-radius:11px; padding:12px 11px; font:inherit; font-size:15px; background:#fff; color:#111318; outline:none; }
+  input:focus,select:focus { border-color:#9aa2af; box-shadow:0 0 0 3px #9aa2af22; }
+  .full { grid-column:1/-1; }
+  .check { display:flex; align-items:center; gap:9px; margin:0; font-size:14px; cursor:pointer; }
+  .check input { width:18px; height:18px; padding:0; }
+  .rec { display:none; background:#f7f8fa; border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .rec.on { display:grid; }
+  .hint { font-size:11px; color:var(--muted); line-height:1.45; }
+  .actions { display:flex; gap:10px; margin-top:14px; }
+  button { border:0; border-radius:12px; padding:13px 16px; font:inherit; font-size:14px; font-weight:750; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .primary { background:#111318; color:#fff; flex:1; }
+  .secondary { background:#f0f1f4; color:#222630; }
+  .export { background:#13a765; color:#fff; flex:1; }
+  .status { min-height:20px; margin-top:10px; font-size:12px; color:var(--muted); line-height:1.45; }
+  .status.error { color:#c62828; }
+  .preview-wrap { display:flex; justify-content:center; }
+  canvas { display:block; width:min(100%,360px); height:auto; aspect-ratio:9/16; background:#fff; border-radius:12px; box-shadow:0 8px 30px #11131818; }
+  .preview-note { font-size:11px; color:var(--muted); text-align:center; margin-top:10px; }
+  .smallprint { color:#777d87; font-size:11px; line-height:1.55; margin:13px 2px 0; }
+  @media (min-width:700px) { .layout { grid-template-columns:310px 1fr; align-items:start; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>Bitcoin POV Video Maker</h1>
+    <div class="sub">Create a clean, data-based Bitcoin investment story for YouTube Shorts.</div>
+  </header>
+  <div class="layout">
+    <section class="panel">
+      <div class="fields">
+        <div><label for="amount">STARTING AMOUNT (USD)</label><input id="amount" type="number" min="0" step="any" value="100"></div>
+        <div><label for="start">START DATE</label><input id="start" type="date" min="2010-07-18" value="2012-01-01"></div>
+        <div><label for="end">END DATE (UTC)</label><input id="end" type="date"></div>
+        <div><label for="duration">VIDEO LENGTH</label>
+          <select id="duration">
+            <option value="8">8 seconds</option><option value="12" selected>12 seconds</option><option value="15">15 seconds</option>
+            <option value="20">20 seconds</option><option value="30">30 seconds</option><option value="45">45 seconds</option><option value="60">60 seconds</option>
+          </select></div>
+        <div class="full"><label class="check"><input id="recOn" type="checkbox"> Also invest regularly (DCA)</label></div>
+        <div class="full rec fields" id="recWrap">
+          <div><label for="recAmt">AMOUNT EACH TIME (USD)</label><input id="recAmt" type="number" min="0" step="any" value="10"></div>
+          <div><label for="every">EVERY</label>
+            <div style="display:flex;gap:6px"><input id="every" type="number" min="1" step="1" value="1" style="width:68px">
+            <select id="unit"><option value="day">day(s)</option><option value="week">week(s)</option><option value="month" selected>month(s)</option><option value="year">year(s)</option></select></div></div>
+          <div class="full hint">The starting amount is invested on the start date. Regular buys then repeat every interval (starting one interval later, or on the start date if the starting amount is 0). Set the starting amount to 0 for a pure recurring plan.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="generate">Generate video</button>
+        <button class="secondary" id="replay" disabled>Replay</button>
+      </div>
+      <div class="actions"><button class="export" id="export" disabled>Export MP4</button></div>
+      <div class="status" id="status" role="status">Pick your amount and dates, then generate your simulation.</div>
+      <p class="smallprint">Prices: daily BTC/USD closes (UTC) from the Coin Metrics Community API, plus a live spot price (Coinbase, with fallbacks) when the end date is today. Buy-and-hold, before fees, taxes and spreads. Historical illustration, not a promise of future returns.</p>
+    </section>
+    <section class="panel">
+      <div class="preview-wrap"><canvas id="video" width="1080" height="1920" aria-label="Portrait Bitcoin investment graph preview"></canvas></div>
+      <div class="preview-note">Portrait 9:16 · 1080 × 1920 · White background</div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const canvas = $("video"), ctx = canvas.getContext("2d");
+  const amountInput=$("amount"), startInput=$("start"), endInput=$("end"), durationInput=$("duration");
+  const recOn=$("recOn"), recWrap=$("recWrap"), recAmt=$("recAmt"), everyEl=$("every"), unitEl=$("unit");
+  const generateBtn=$("generate"), replayBtn=$("replay"), exportBtn=$("export"), statusEl=$("status");
+  const W=canvas.width, H=canvas.height, FPS=30, HOLD=1;
+  const API="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics";
+  const MIN_DATE="2010-07-18";
+  const todayUTC=()=>new Date().toISOString().slice(0,10);
+  const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+
+  let series=[], cfg=null, duration=12, animationFrame=null, sourceNote="", liveNote=false, busy=false;
+
+  const setStatus=(m,err=false)=>{statusEl.textContent=m;statusEl.className=err?"status error":"status";};
+  const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:Math.abs(n)<100?2:0}).format(n);
+  const compact=v=>{const a=Math.abs(v);for(const [d,s] of [[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]])if(a>=d)return "$"+(+(v/d).toFixed(2))+s;return "$"+(+v.toFixed(2));};
+  const fullDate=s=>new Date(s+"T00:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"});
+  const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+  const readCfg=()=>({init:Math.max(0,Number(amountInput.value)||0),start:startInput.value,end:endInput.value,rec:recOn.checked,
+    recAmt:Number(recAmt.value)||0,every:Math.max(1,Math.floor(Number(everyEl.value)||1)),unit:unitEl.value});
+
+  // Date + k*unit with calendar clamping (Jan 31 + 1 month = Feb 28/29)
+  function addUnits(s,k,unit){
+    const [y,m,d]=s.split("-").map(Number);
+    if(unit==="month"||unit==="year"){
+      const mm=m-1+(unit==="year"?12*k:k), yy=y+Math.floor(mm/12), mo=mm%12;
+      const dim=new Date(Date.UTC(yy,mo+1,0)).getUTCDate();
+      return new Date(Date.UTC(yy,mo,Math.min(d,dim))).toISOString().slice(0,10);
+    }
+    return new Date(Date.UTC(y,m-1,d+k*(unit==="week"?7:1))).toISOString().slice(0,10);
+  }
+
+  function fit(text,size,weight,maxW){
+    for(;size>22;size-=2){ctx.font=`${weight} ${size}px Arial, sans-serif`;if(ctx.measureText(text).width<=maxW)break;}
+    ctx.font=`${weight} ${size}px Arial, sans-serif`;
+    ctx.fillText(text,W/2,fit.y);
+  }
+
+  function headline(){
+    const c=cfg, per=c.every===1?"every "+c.unit:"every "+c.every+" "+c.unit+"s";
+    const l2=c.rec?(c.init>0?money(c.init)+" + "+money(c.recAmt)+" "+per:money(c.recAmt)+" "+per):money(c.init);
+    const l3=(c.rec?"since ":"in ")+new Date(c.start+"T00:00:00Z").getUTCFullYear()+" and never sold";
+    ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+    ctx.fillStyle="#111318"; fit.y=430; fit("POV: You invested",58,800,960);
+    ctx.fillStyle="#19c653"; fit.y=505; fit(l2,58,800,960);
+    ctx.fillStyle="#111318"; fit.y=580; fit(l3,58,800,960);
+    ctx.fillStyle="#747983"; fit.y=650; fit(fullDate(c.start)+"  →  "+fullDate(c.end),35,500,960);
+  }
+
+  function drawBase(){
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+    ctx.beginPath(); ctx.arc(W/2,220,92,0,Math.PI*2); ctx.fillStyle="#f7931a"; ctx.fill();
+    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.font="bold 126px Arial, sans-serif"; ctx.fillText("₿",W/2,222);
+    headline();
+    ctx.strokeStyle="#15171b"; ctx.lineWidth=5; ctx.lineCap="butt"; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(130,790); ctx.lineTo(130,1510); ctx.lineTo(950,1510); ctx.stroke();
+    ctx.fillStyle="#8a8f98"; ctx.font="26px Arial,sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText("Investment value (USD)",145,755);
+  }
+
+  function draw(pv){
+    drawBase();
+    if(!series.length){ctx.fillStyle="#a0a4ac";ctx.textAlign="center";ctx.font="34px Arial";ctx.fillText("Generate to load BTC prices",W/2,1120);return;}
+    const n=Math.max(1,Math.ceil(pv*series.length)), vis=series.slice(0,n), last=vis[n-1];
+    let mx=0; for(const p of series) mx=Math.max(mx,p.value,p.invested);
+    const raw=(mx/4)||1, pw=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/pw;
+    const step=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*pw, ticks=Math.max(1,Math.ceil(mx/step-1e-9)), hi=step*ticks;
+    const left=150,right=940,top=830,bottom=1450;
+    const xAt=i=>left+(series.length<=1?0:i/(series.length-1))*(right-left);
+    const yAt=v=>bottom-(v/hi)*(bottom-top);
+
+    // Grid + axis labels (compact K/M/B only when the full number would be cut off)
+    ctx.strokeStyle="#eceef1"; ctx.lineWidth=2; ctx.fillStyle="#858a93"; ctx.font="25px Arial"; ctx.textAlign="right"; ctx.textBaseline="alphabetic";
+    for(let k=0;k<=ticks;k++){
+      const v=k*step, y=yAt(v);
+      ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke();
+      let t=money(v); if(ctx.measureText(t).width>108) t=compact(v);
+      ctx.fillText(t,118,y+8);
+    }
+    // Invested line (dashed) for recurring plans
+    if(cfg.rec && n>1){
+      ctx.beginPath(); ctx.setLineDash([18,14]); ctx.strokeStyle="#9aa2af"; ctx.lineWidth=4; ctx.lineCap="butt";
+      vis.forEach((p,i)=>i?ctx.lineTo(xAt(i),yAt(p.invested)):ctx.moveTo(xAt(i),yAt(p.invested)));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    // Value line: up/down colours, batched into runs
+    ctx.lineWidth=7; ctx.lineCap="round"; ctx.lineJoin="round";
+    if(n>1){
+      let col=null;
+      for(let i=1;i<n;i++){
+        const c=vis[i].value>=vis[i-1].value?"#12b76a":"#ef4444";
+        if(c!==col){ if(col)ctx.stroke(); ctx.beginPath(); ctx.moveTo(xAt(i-1),yAt(vis[i-1].value)); ctx.strokeStyle=c; col=c; }
+        ctx.lineTo(xAt(i),yAt(vis[i].value));
+      }
+      ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(xAt(n-1),yAt(last.value),13,0,Math.PI*2);
+    ctx.fillStyle="#111318"; ctx.fill(); ctx.lineWidth=5; ctx.strokeStyle="#fff"; ctx.stroke();
+    if(cfg.rec){ ctx.font="24px Arial"; ctx.textAlign="left"; ctx.fillStyle="#12b76a"; ctx.fillText("━ Value",left+10,top-22);
+      ctx.fillStyle="#9aa2af"; ctx.fillText("╌ Total invested",left+150,top-22); }
+
+    // Real start / end dates of the data shown
+    ctx.font="26px Arial"; ctx.fillStyle="#777d87";
+    ctx.textAlign="left"; ctx.fillText(fullDate(series[0].date),left,bottom+55);
+    ctx.textAlign="right"; ctx.fillText(fullDate(series[series.length-1].date)+(liveNote?" · live":""),right,bottom+55);
+
+    // Live result (full number, never abbreviated)
+    const gain=last.invested>0?(last.value/last.invested-1)*100:0, profit=last.value-last.invested;
+    ctx.textAlign="center"; ctx.fillStyle="#111318"; fit.y=1650; fit(money(last.value),70,"bold",960);
+    ctx.fillStyle=gain>=0?"#12a765":"#e04444"; fit.y=1715; fit((gain>=0?"+":"")+gain.toLocaleString("en-US",{maximumFractionDigits:1})+"%",40,"bold",960);
+    ctx.fillStyle="#555b65"; fit.y=1772; fit("Invested "+money(last.invested)+"  ·  Profit "+(profit>=0?"+":"-")+money(Math.abs(profit)),30,500,960);
+    ctx.fillStyle="#8a8f98"; ctx.font="24px Arial"; ctx.fillText("Illustrative value · before fees and taxes",W/2,1836);
+    ctx.font="21px Arial"; ctx.fillText(sourceNote,W/2,1876);
+  }
+
+  const renderAt=sec=>draw(ease(Math.min(1,sec/duration)));
+  function stopAnimation(){if(animationFrame)cancelAnimationFrame(animationFrame);animationFrame=null;}
+  function animate(){
+    stopAnimation(); const t0=performance.now();
+    const tick=now=>{
+      const s=(now-t0)/1000; renderAt(s);
+      if(s<duration) animationFrame=requestAnimationFrame(tick);
+      else {animationFrame=null;draw(1);replayBtn.disabled=false;exportBtn.disabled=false;}
+    };
+    animationFrame=requestAnimationFrame(tick);
+  }
+
+  // ---------- Data ----------
+  async function coinMetrics(t){
+    let url=API+"?"+new URLSearchParams({assets:"btc",metrics:"PriceUSD",frequency:"1d",start_time:MIN_DATE,end_time:t,page_size:"10000"});
+    let all=[];
+    for(let n=0;url&&n<6;n++){
+      const r=await fetch(url); if(!r.ok) throw new Error("Coin Metrics HTTP "+r.status);
+      const j=await r.json(); if(!Array.isArray(j.data)) throw new Error("Bad response");
+      all=all.concat(j.data); url=j.next_page_url||null;
+    }
+    return all.map(r=>({date:String(r.time).slice(0,10),price:Number(r.PriceUSD)}));
+  }
+  async function cryptoCompare(){
+    const r=await fetch("https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&allData=true");
+    if(!r.ok) throw new Error("CryptoCompare HTTP "+r.status);
+    const j=await r.json();
+    return j.Data.Data.map(d=>({date:new Date(d.time*1000).toISOString().slice(0,10),price:Number(d.close)}));
+  }
+  async function history(){
+    const t=todayUTC();
+    try{const c=JSON.parse(ls.get("btc_pov_hist")); if(c&&c.day===t&&Date.now()-c.at<36e5&&c.rows.length>1000) return c;}catch(e){}
+    let rows,src="Coin Metrics";
+    try{rows=await coinMetrics(t);}catch(e){rows=await cryptoCompare();src="CryptoCompare";}
+    rows=rows.filter(r=>r.date>=MIN_DATE&&r.date<t&&Number.isFinite(r.price)&&r.price>0).sort((a,b)=>a.date.localeCompare(b.date));
+    if(rows.length<100) throw new Error("No usable BTC/USD history returned.");
+    const c={day:t,at:Date.now(),rows,src}; ls.set("btc_pov_hist",JSON.stringify(c)); return c;
+  }
+  async function livePrice(){
+    const S=[["Coinbase","https://api.coinbase.com/v2/prices/BTC-USD/spot",j=>j.data.amount],
+      ["Kraken","https://api.kraken.com/0/public/Ticker?pair=XBTUSD",j=>Object.values(j.result)[0].c[0]],
+      ["Binance","https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",j=>j.price],
+      ["CoinGecko","https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",j=>j.bitcoin.usd]];
+    for(const [name,url,pick] of S){
+      try{
+        const ac=new AbortController(), to=setTimeout(()=>ac.abort(),6000);
+        const r=await fetch(url,{signal:ac.signal,cache:"no-store"}); clearTimeout(to);
+        const p=Number(pick(await r.json())); if(p>0) return {price:p,src:name};
+      }catch(e){}
+    }
+    return null;
+  }
+
+  // Simulation: every scheduled buy goes to the first available price on/after its date
+  function simulate(rows,c){
+    const sched={};
+    if(c.init>0) sched[c.start]=c.init;
+    if(c.rec&&c.recAmt>0) for(let k=c.init>0?1:0;k<20000;k++){
+      const d=addUnits(c.start,k*c.every,c.unit); if(d>c.end) break; sched[d]=(sched[d]||0)+c.recAmt;
+    }
+    const dates=Object.keys(sched).sort(); let j=0,units=0,inv=0,buys=0;
+    const out=rows.map(p=>{
+      while(j<dates.length&&dates[j]<=p.date){units+=sched[dates[j]]/p.price;inv+=sched[dates[j]];buys++;j++;}
+      return {date:p.date,price:p.price,invested:inv,value:units*p.price};
+    });
+    return {out,buys};
+  }
+
+  async function generate(){
+    stopAnimation(); const c=readCfg(), t=todayUTC();
+    if(!c.start||c.start<MIN_DATE||c.start>=t){setStatus("Start date must be between Jul 18, 2010 and yesterday.",true);return;}
+    if(!c.end||c.end>t||c.end<=c.start){setStatus("End date must be after the start date and not later than today (UTC).",true);return;}
+    if(c.init>1e9||c.recAmt>1e9||c.init<0){setStatus("Enter valid amounts.",true);return;}
+    if(c.rec&&c.recAmt<=0){setStatus("Enter the recurring amount, or untick regular investing.",true);return;}
+    if(!c.rec&&c.init<=0){setStatus("Enter a starting amount greater than $0.",true);return;}
+    cfg=c; duration=Number(durationInput.value);
+    for(const [k,el] of IDS) ls.set("btc_pov_"+k,el.type==="checkbox"?(el.checked?"1":"0"):el.value);
+    generateBtn.disabled=replayBtn.disabled=exportBtn.disabled=true; busy=true;
+    setStatus("Loading daily BTC/USD prices and the live price…"); series=[]; draw(0);
+    try{
+      const h=await history();
+      let rows=h.rows.filter(r=>r.date>=c.start&&r.date<=c.end), live=null;
+      if(c.end>=t){live=await livePrice(); if(live) rows=rows.concat([{date:t,price:live.price}]);}
+      if(rows.length<2) throw new Error("Not enough price data for this date range.");
+      const {out,buys}=simulate(rows,c); series=out; liveNote=!!live;
+      sourceNote="Daily closes: "+h.src+" (UTC)"+(live?" · Live: "+live.src:"");
+      const e=out[out.length-1];
+      setStatus(`${out.length.toLocaleString()} days · ${fullDate(out[0].date)} → ${fullDate(e.date)}${live?" (live "+money(live.price)+" via "+live.src+")":""} · ${buys} buy${buys===1?"":"s"}, ${money(e.invested)} invested → ${money(e.value)}.`+(c.end>=t&&!live?" Live price unavailable, so the chart ends at the last daily close.":""));
+      animate();
+    }catch(err){series=[];draw(0);setStatus(err.message||"Could not load prices.",true);}
+    finally{generateBtn.disabled=false;busy=false;}
+  }
+
+  // ---------- Export ----------
+  function save(blob,ext){
+    const a=document.createElement("a"), url=URL.createObjectURL(blob);
+    a.href=url; a.download=`bitcoin-pov-${cfg.start}-to-${cfg.end}.${ext}`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }
+  const loadMuxer=()=>window.Mp4Muxer?Promise.resolve():new Promise((res,rej)=>{
+    const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.min.js";
+    s.onload=res; s.onerror=()=>rej(new Error("muxer")); document.head.appendChild(s);
+  });
+  // Frame-exact MP4: renders every frame offline, so length is exact and tab throttling can't cut it short
+  async function exportMp4(total){
+    if(!window.VideoEncoder||!window.VideoFrame) throw new Error("no WebCodecs");
+    await loadMuxer();
+    const conf={codec:"avc1.640029",width:W,height:H,bitrate:8e6,framerate:FPS};
+    if(!(await VideoEncoder.isConfigSupported(conf)).supported) throw new Error("H.264 unsupported");
+    const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:"avc",width:W,height:H},fastStart:"in-memory"});
+    let err=null; const enc=new VideoEncoder({output:(c,m)=>muxer.addVideoChunk(c,m),error:e=>{err=e;}});
+    enc.configure(conf);
+    for(let i=0;i<total;i++){
+      if(err) throw err;
+      renderAt(i/FPS);
+      const f=new VideoFrame(canvas,{timestamp:Math.round(i*1e6/FPS),duration:Math.round(1e6/FPS)});
+      enc.encode(f,{keyFrame:i%60===0}); f.close();
+      while(enc.encodeQueueSize>6) await new Promise(r=>setTimeout(r,5));
+      if(i%10===0){setStatus(`Rendering MP4… ${Math.round(i/total*100)}%`);await new Promise(r=>setTimeout(r));}
+    }
+    await enc.flush(); if(err) throw err; muxer.finalize();
+    save(new Blob([muxer.target.buffer],{type:"video/mp4"}),"mp4");
+    setStatus(`MP4 exported: ${duration}s animation + ${HOLD}s hold on the final result (${total} frames, ${FPS} fps).`);
+  }
+  // Fallback: real-time recording. Keep this tab visible while it runs.
+  function exportRecorded(total){
+    return new Promise((res,rej)=>{
+      if(!canvas.captureStream||!window.MediaRecorder) return rej(new Error("Video recording is not supported in this browser. Use the latest Chrome, Edge or Safari."));
+      const mime=["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm"].find(t=>MediaRecorder.isTypeSupported(t))||"";
+      const rec=new MediaRecorder(canvas.captureStream(FPS),mime?{mimeType:mime,videoBitsPerSecond:8e6}:undefined), chunks=[];
+      rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+      rec.onerror=()=>rej(new Error("Recording failed."));
+      rec.onstop=()=>{const t=rec.mimeType||mime||"video/webm",ext=t.includes("mp4")?"mp4":"webm";
+        save(new Blob(chunks,{type:t}),ext);
+        setStatus(ext==="mp4"?"MP4 exported (real-time recording).":"Exported as WebM because this browser can't make MP4. Convert it to MP4 if needed.");res();};
+      const len=total/FPS, t0=performance.now(); rec.start(500);
+      const tick=()=>{const s=(performance.now()-t0)/1000; renderAt(Math.min(s,duration)); setStatus(`Recording… ${Math.min(100,Math.round(s/len*100))}% — keep this tab open and visible.`);
+        if(s<len) requestAnimationFrame(tick); else setTimeout(()=>rec.stop(),500);};
+      tick();
+    });
+  }
+  async function exportVideo(){
+    if(!series.length||busy) return;
+    stopAnimation(); busy=true; generateBtn.disabled=replayBtn.disabled=exportBtn.disabled=true;
+    const total=Math.round((duration+HOLD)*FPS);
+    try{
+      try{await exportMp4(total);}
+      catch(e){setStatus("Direct MP4 encoder unavailable here ("+(e.message||e)+"). Using the browser recorder…");await exportRecorded(total);}
+    }catch(e){setStatus(e.message||"Export failed.",true);}
+    finally{busy=false;generateBtn.disabled=replayBtn.disabled=exportBtn.disabled=false;draw(1);}
+  }
+
+  // ---------- Init ----------
+  const IDS=[["amount",amountInput],["start",startInput],["duration",durationInput],["recOn",recOn],["recAmt",recAmt],["every",everyEl],["unit",unitEl]];
+  for(const [k,el] of IDS){const v=ls.get("btc_pov_"+k); if(v!==null){if(el.type==="checkbox")el.checked=v==="1";else el.value=v;}}
+  endInput.max=todayUTC(); endInput.value=todayUTC(); startInput.max=todayUTC();
+  const syncRec=()=>recWrap.classList.toggle("on",recOn.checked);
+  recOn.addEventListener("change",syncRec); syncRec();
+  cfg=readCfg(); draw(0);
+  generateBtn.addEventListener("click",generate);
+  replayBtn.addEventListener("click",()=>{if(series.length&&!busy)animate();});
+  exportBtn.addEventListener("click",exportVideo);
+})();
+</script>
+</body>
+</html>
