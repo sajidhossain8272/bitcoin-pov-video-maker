@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Bitcoin POV Video Maker</title>
+<title>POV Investing Video Maker</title>
 <style>
   :root { color-scheme: light; --ink:#111318; --muted:#777d87; --line:#e8e9ed; }
   * { box-sizing:border-box; }
@@ -47,12 +47,13 @@
 <body>
 <div class="shell">
   <header>
-    <h1>Bitcoin POV Video Maker</h1>
+    <h1>POV Investing Video Maker</h1>
     <div class="sub">Create a clean, data-based Bitcoin investment story for YouTube Shorts.</div>
   </header>
   <div class="layout">
     <section class="panel">
       <div class="fields">
+        <div class="full"><label for="asset">ASSET (TOP CRYPTO &amp; NASDAQ-100)</label><select id="asset"></select></div>
         <div><label for="amount">STARTING AMOUNT (USD)</label><input id="amount" type="number" min="0" step="any" value="100"></div>
         <div><label for="start">START DATE</label><input id="start" type="date" min="2010-07-18" value="2012-01-01"></div>
         <div><label for="end">END DATE (UTC)</label><input id="end" type="date"></div>
@@ -76,7 +77,7 @@
       </div>
       <div class="actions"><button class="export" id="export" disabled>Export MP4</button></div>
       <div class="status" id="status" role="status">Pick your amount and dates, then generate your simulation.</div>
-      <p class="smallprint">Prices: daily BTC/USD closes (UTC) from the Coin Metrics Community API, plus a live spot price (Coinbase, with fallbacks) when the end date is today. Buy-and-hold, before fees, taxes and spreads. Historical illustration, not a promise of future returns.</p>
+      <p class="smallprint">Crypto prices: daily USD closes (UTC) from Coin Metrics (Bitcoin) or CryptoCompare, plus a live spot price when the end date is today. Stocks: split-adjusted daily closes from Yahoo Finance (price only, dividends excluded) through public data proxies. Buy-and-hold, before fees, taxes and spreads. Historical illustration, not a promise of future returns.</p>
     </section>
     <section class="panel">
       <div class="preview-wrap"><canvas id="video" width="1080" height="1920" aria-label="Portrait Bitcoin investment graph preview"></canvas></div>
@@ -95,6 +96,7 @@
   </div>
 </div>
 
+<script src="./logos.js"></script>
 <script>
 (() => {
   "use strict";
@@ -106,6 +108,18 @@
   const W=canvas.width, H=canvas.height, FPS=30, HOLD=1;
   const API="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics";
   const MIN_DATE="2010-07-18";
+  const LISTS={"C": "BTC:Bitcoin,ETH:Ethereum,XRP:XRP,BNB:BNB,SOL:Solana,DOGE:Dogecoin,TRX:TRON,ADA:Cardano,HYPE:Hyperliquid,LINK:Chainlink,BCH:Bitcoin Cash,XLM:Stellar,LTC:Litecoin,AVAX:Avalanche,SUI:Sui,HBAR:Hedera,TON:Toncoin,SHIB:Shiba Inu,DOT:Polkadot,XMR:Monero,UNI:Uniswap,AAVE:Aave,ETC:Ethereum Classic,NEAR:NEAR Protocol,ICP:Internet Computer,APT:Aptos,ONDO:Ondo,PEPE:Pepe,ARB:Arbitrum,ALGO:Algorand,VET:VeChain,ATOM:Cosmos,FIL:Filecoin,TAO:Bittensor,POL:POL (Polygon),RENDER:Render,KAS:Kaspa,SEI:Sei,INJ:Injective,OP:Optimism,STX:Stacks,CRV:Curve DAO,LDO:Lido DAO,IMX:Immutable,GRT:The Graph,JUP:Jupiter,CAKE:PancakeSwap,THETA:Theta Network,FET:Fetch.ai,XTZ:Tezos,SAND:The Sandbox,MANA:Decentraland,FLOW:Flow,EOS:EOS,NEO:NEO,IOTA:IOTA,BONK:Bonk,WIF:dogwifhat,FLOKI:Floki,ENS:Ethereum Name Service,QNT:Quant,GALA:Gala,AXS:Axie Infinity,CHZ:Chiliz,ZEC:Zcash,DASH:Dash,XDC:XDC Network,BSV:Bitcoin SV,RUNE:THORChain,COMP:Compound,SNX:Synthetix,MKR:Maker,1INCH:1inch,KAVA:Kava,ZIL:Zilliqa,ENJ:Enjin Coin,BAT:Basic Attention Token,LRC:Loopring,CRO:Cronos,TIA:Celestia,PYTH:Pyth Network,JASMY:JasmyCoin,PENDLE:Pendle,WLD:Worldcoin,ENA:Ethena,AERO:Aerodrome,S:Sonic,MORPHO:Morpho,GNO:Gnosis,ZRX:0x,ANKR:Ankr,ROSE:Oasis Network,MINA:Mina,BLUR:Blur,DYDX:dYdX,TWT:Trust Wallet Token,CFX:Conflux,EGLD:MultiversX,AR:Arweave,APE:ApeCoin,RVN:Ravencoin,WAVES:Waves,IOTX:IoTeX", "S": "AAPL:Apple,MSFT:Microsoft,NVDA:NVIDIA,AMZN:Amazon,GOOGL:Alphabet (Google) A,GOOG:Alphabet (Google) C,META:Meta Platforms,AVGO:Broadcom,TSLA:Tesla,COST:Costco,NFLX:Netflix,ASML:ASML,TMUS:T-Mobile US,CSCO:Cisco,PEP:PepsiCo,LIN:Linde,AZN:AstraZeneca,ADBE:Adobe,AMD:AMD,QCOM:Qualcomm,TXN:Texas Instruments,INTU:Intuit,AMGN:Amgen,ISRG:Intuitive Surgical,AMAT:Applied Materials,BKNG:Booking Holdings,HON:Honeywell,CMCSA:Comcast,PDD:PDD Holdings,VRTX:Vertex Pharmaceuticals,ADP:ADP,ADI:Analog Devices,GILD:Gilead Sciences,PANW:Palo Alto Networks,MU:Micron,LRCX:Lam Research,KLAC:KLA,SBUX:Starbucks,MELI:MercadoLibre,INTC:Intel,CRWD:CrowdStrike,MDLZ:Mondelez,CDNS:Cadence,SNPS:Synopsys,REGN:Regeneron,ORLY:O'Reilly Automotive,CTAS:Cintas,MAR:Marriott,CSX:CSX,PYPL:PayPal,MRVL:Marvell,ADSK:Autodesk,FTNT:Fortinet,WDAY:Workday,ABNB:Airbnb,ROP:Roper Technologies,DASH:DoorDash,CHTR:Charter Communications,NXPI:NXP Semiconductors,PCAR:PACCAR,MNST:Monster Beverage,CPRT:Copart,FANG:Diamondback Energy,PAYX:Paychex,ROST:Ross Stores,AEP:American Electric Power,KDP:Keurig Dr Pepper,FAST:Fastenal,ODFL:Old Dominion Freight,KHC:Kraft Heinz,EXC:Exelon,VRSK:Verisk,XEL:Xcel Energy,CTSH:Cognizant,EA:Electronic Arts,LULU:Lululemon,BKR:Baker Hughes,CCEP:Coca-Cola Europacific,GEHC:GE HealthCare,IDXX:IDEXX,TTWO:Take-Two,CSGP:CoStar,DDOG:Datadog,ON:onsemi,MCHP:Microchip,ZS:Zscaler,CDW:CDW,TEAM:Atlassian,BIIB:Biogen,GFS:GlobalFoundries,DXCM:DexCom,ARM:Arm Holdings,TTD:The Trade Desk,MDB:MongoDB,WBD:Warner Bros. Discovery,APP:AppLovin,PLTR:Palantir,AXON:Axon,SHOP:Shopify,MSTR:Strategy (MicroStrategy),TRI:Thomson Reuters,CEG:Constellation Energy"};
+  const ASSETS=[];
+  for(const [k,type] of [["C","crypto"],["S","stock"]]) for(const x of LISTS[k].split(",")){const [sym,...n]=x.split(":");ASSETS.push({type,sym,name:n.join(":")});}
+  const assetEl=$("asset");
+  for(const [label,type] of [["Crypto (top ~100, no stablecoins)","crypto"],["Nasdaq-100 stocks","stock"]]){
+    const g=document.createElement("optgroup"); g.label=label;
+    ASSETS.forEach((a,i)=>{if(a.type===type){const o=document.createElement("option");o.value=i;o.textContent=a.name+" ("+a.sym+")";g.appendChild(o);}});
+    assetEl.appendChild(g);
+  }
+  const getAsset=()=>ASSETS[Number(assetEl.value)]||ASSETS[0];
+  const imgs={}, lkey=a=>a.type[0]+":"+a.sym;
+  const loadLogo=a=>new Promise(r=>{const k=lkey(a),src=window.LOGOS&&window.LOGOS[k]; if(!src||imgs[k])return r(); const im=new Image(); im.onload=()=>{imgs[k]=im;r();}; im.onerror=()=>r(); im.src=src;});
   const todayUTC=()=>new Date().toISOString().slice(0,10);
   const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 
@@ -116,7 +130,7 @@
   const compact=v=>{const a=Math.abs(v);for(const [d,s] of [[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]])if(a>=d)return "$"+(+(v/d).toFixed(2))+s;return "$"+(+v.toFixed(2));};
   const fullDate=s=>new Date(s+"T00:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"});
   const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
-  const readCfg=()=>({init:Math.max(0,Number(amountInput.value)||0),start:startInput.value,end:endInput.value,rec:recOn.checked,
+  const readCfg=()=>({asset:getAsset(),init:Math.max(0,Number(amountInput.value)||0),start:startInput.value,end:endInput.value,rec:recOn.checked,
     recAmt:Number(recAmt.value)||0,every:Math.max(1,Math.floor(Number(everyEl.value)||1)),unit:unitEl.value});
 
   // Date + k*unit with calendar clamping (Jan 31 + 1 month = Feb 28/29)
@@ -139,7 +153,7 @@
   function headline(){
     const c=cfg, per=c.every===1?"every "+c.unit:"every "+c.every+" "+c.unit+"s";
     const l2=c.rec?(c.init>0?money(c.init)+" + "+money(c.recAmt)+" "+per:money(c.recAmt)+" "+per):money(c.init);
-    const l3=(c.rec?"since ":"in ")+new Date(c.start+"T00:00:00Z").getUTCFullYear()+" and never sold";
+    const l3="in "+c.asset.name+(c.rec?" since ":" in ")+new Date(c.start+"T00:00:00Z").getUTCFullYear()+" and never sold";
     ctx.textAlign="center"; ctx.textBaseline="alphabetic";
     ctx.fillStyle="#111318"; fit.y=430; fit("POV: You invested",58,800,960);
     ctx.fillStyle="#19c653"; fit.y=505; fit(l2,58,800,960);
@@ -147,11 +161,21 @@
     ctx.fillStyle="#747983"; fit.y=650; fit(fullDate(c.start)+"  →  "+fullDate(c.end),35,500,960);
   }
 
+  function drawLogo(){
+    const a=cfg.asset, im=imgs[lkey(a)], R=92, cx=W/2, cy=220;
+    if(a.sym==="BTC"&&a.type==="crypto"){
+      ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fillStyle="#f7931a"; ctx.fill();
+      ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.font="bold 126px Arial, sans-serif"; ctx.fillText("₿",cx,cy+2); return;
+    }
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+    if(im){ctx.fillStyle="#fff";ctx.fillRect(cx-R,cy-R,2*R,2*R);ctx.drawImage(im,cx-R,cy-R,2*R,2*R);}
+    else{let h=0;for(const ch of a.sym)h=(h*31+ch.charCodeAt(0))%360;ctx.fillStyle=`hsl(${h},55%,42%)`;ctx.fillRect(cx-R,cy-R,2*R,2*R);
+      ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`bold ${a.sym.length>3?56:74}px Arial, sans-serif`;ctx.fillText(a.sym.slice(0,5),cx,cy+4);}
+    ctx.restore(); ctx.strokeStyle="#e8e9ed"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  }
   function drawBase(){
     ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
-    ctx.beginPath(); ctx.arc(W/2,220,92,0,Math.PI*2); ctx.fillStyle="#f7931a"; ctx.fill();
-    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
-    ctx.font="bold 126px Arial, sans-serif"; ctx.fillText("₿",W/2,222);
+    drawLogo();
     headline();
     ctx.strokeStyle="#15171b"; ctx.lineWidth=5; ctx.lineCap="butt"; ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(130,790); ctx.lineTo(130,1510); ctx.lineTo(950,1510); ctx.stroke();
@@ -237,26 +261,46 @@
     }
     return all.map(r=>({date:String(r.time).slice(0,10),price:Number(r.PriceUSD)}));
   }
-  async function cryptoCompare(){
-    const r=await fetch("https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&allData=true");
+  async function cryptoCompare(sym="BTC"){
+    const r=await fetch(`https://min-api.cryptocompare.com/data/v2/histoday?fsym=${sym}&tsym=USD&allData=true`);
     if(!r.ok) throw new Error("CryptoCompare HTTP "+r.status);
-    const j=await r.json();
+    const j=await r.json(); if(j.Response==="Error"||!j.Data||!j.Data.Data) throw new Error("No price history found for "+sym+".");
     return j.Data.Data.map(d=>({date:new Date(d.time*1000).toISOString().slice(0,10),price:Number(d.close)}));
   }
-  async function history(){
-    const t=todayUTC();
-    try{const c=JSON.parse(ls.get("btc_pov_hist")); if(c&&c.day===t&&Date.now()-c.at<36e5&&c.rows.length>1000) return c;}catch(e){}
-    let rows,src="Coin Metrics";
-    try{rows=await coinMetrics(t);}catch(e){rows=await cryptoCompare();src="CryptoCompare";}
-    rows=rows.filter(r=>r.date>=MIN_DATE&&r.date<t&&Number.isFinite(r.price)&&r.price>0).sort((a,b)=>a.date.localeCompare(b.date));
-    if(rows.length<100) throw new Error("No usable BTC/USD history returned.");
-    const c={day:t,at:Date.now(),rows,src}; ls.set("btc_pov_hist",JSON.stringify(c)); return c;
+  const PROXIES=[u=>"https://corsproxy.io/?url="+encodeURIComponent(u),u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u)];
+  async function yahoo(sym){
+    const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=max&interval=1d`;
+    for(const p of PROXIES){
+      try{
+        const ac=new AbortController(), to=setTimeout(()=>ac.abort(),20000);
+        const r=await fetch(p(u),{signal:ac.signal}); clearTimeout(to);
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const res=(await r.json()).chart.result[0], cl=res.indicators.quote[0].close;
+        const rows=res.timestamp.map((t,i)=>({date:new Date(t*1000).toISOString().slice(0,10),price:Number(cl[i])})).filter(x=>x.price>0);
+        if(rows.length>30) return rows;
+      }catch(e){}
+    }
+    throw new Error("Stock prices are unavailable right now (the public data proxies failed). Try again later.");
   }
-  async function livePrice(){
-    const S=[["Coinbase","https://api.coinbase.com/v2/prices/BTC-USD/spot",j=>j.data.amount],
-      ["Kraken","https://api.kraken.com/0/public/Ticker?pair=XBTUSD",j=>Object.values(j.result)[0].c[0]],
-      ["Binance","https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",j=>j.price],
-      ["CoinGecko","https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",j=>j.bitcoin.usd]];
+  async function history(a){
+    const t=todayUTC(), id=a.type+":"+a.sym, stock=a.type==="stock";
+    try{const c=JSON.parse(ls.get("btc_pov_hist")); if(c&&c.id===id&&c.day===t&&Date.now()-c.at<36e5&&c.rows.length>30) return c;}catch(e){}
+    let rows,src;
+    if(stock){rows=await yahoo(a.sym);src="Yahoo Finance (price only)";}
+    else if(a.sym==="BTC"){try{rows=await coinMetrics(t);src="Coin Metrics";}catch(e){rows=await cryptoCompare("BTC");src="CryptoCompare";}}
+    else{rows=await cryptoCompare(a.sym);src="CryptoCompare";}
+    const seen={};
+    rows=rows.filter(r=>r.date>=MIN_DATE&&(stock?r.date<=t:r.date<t)&&Number.isFinite(r.price)&&r.price>0).sort((x,y)=>x.date.localeCompare(y.date)).filter(r=>!seen[r.date]&&(seen[r.date]=1));
+    if(rows.length<30) throw new Error("No usable price history returned for "+a.name+".");
+    const c={id,day:t,at:Date.now(),rows,src}; ls.set("btc_pov_hist",JSON.stringify(c)); return c;
+  }
+  async function livePrice(a){
+    const s=a.sym;
+    const S=[["Coinbase",`https://api.coinbase.com/v2/prices/${s}-USD/spot`,j=>j.data.amount],
+      ["Binance",`https://api.binance.com/api/v3/ticker/price?symbol=${s}USDT`,j=>j.price],
+      ["CryptoCompare",`https://min-api.cryptocompare.com/data/price?fsym=${s}&tsyms=USD`,j=>j.USD],
+      ...(s==="BTC"?[["Kraken","https://api.kraken.com/0/public/Ticker?pair=XBTUSD",j=>Object.values(j.result)[0].c[0]],
+      ["CoinGecko","https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",j=>j.bitcoin.usd]]:[])];
     for(const [name,url,pick] of S){
       try{
         const ac=new AbortController(), to=setTimeout(()=>ac.abort(),6000);
@@ -294,14 +338,16 @@
     generateBtn.disabled=replayBtn.disabled=exportBtn.disabled=true; busy=true;
     setStatus("Loading daily BTC/USD prices and the live price…"); series=[]; draw(0);
     try{
-      const h=await history();
+      const a=c.asset; await loadLogo(a); const h=await history(a);
       let rows=h.rows.filter(r=>r.date>=c.start&&r.date<=c.end), live=null;
-      if(c.end>=t){live=await livePrice(); if(live) rows=rows.concat([{date:t,price:live.price}]);}
+      if(c.end>=t&&a.type==="crypto"){live=await livePrice(a); if(live) rows=rows.concat([{date:t,price:live.price}]);}
       if(rows.length<2) throw new Error("Not enough price data for this date range.");
+      let moved="";
+      if(rows[0].date>c.start){ if(rows[0].date>addUnits(c.start,10,"day")) moved=` ${a.name} data starts ${fullDate(rows[0].date)}, so the start date was moved there.`; c.start=rows[0].date; startInput.value=c.start; }
       const {out,buys}=simulate(rows,c); series=out; liveNote=!!live;
       sourceNote="Daily closes: "+h.src+" (UTC)"+(live?" · Live: "+live.src:"");
       const e=out[out.length-1];
-      setStatus(`${out.length.toLocaleString()} days · ${fullDate(out[0].date)} → ${fullDate(e.date)}${live?" (live "+money(live.price)+" via "+live.src+")":""} · ${buys} buy${buys===1?"":"s"}, ${money(e.invested)} invested → ${money(e.value)}.`+(c.end>=t&&!live?" Live price unavailable, so the chart ends at the last daily close.":""));
+      setStatus(`${out.length.toLocaleString()} days · ${fullDate(out[0].date)} → ${fullDate(e.date)}${live?" (live "+money(live.price)+" via "+live.src+")":""} · ${buys} buy${buys===1?"":"s"}, ${money(e.invested)} invested → ${money(e.value)}.`+moved+(c.end>=t&&a.type==="crypto"&&!live?" Live price unavailable, so the chart ends at the last daily close.":""));
       animate(); buildSeo();
     }catch(err){series=[];$("seo").hidden=true;draw(0);setStatus(err.message||"Could not load prices.",true);}
     finally{generateBtn.disabled=false;busy=false;}
@@ -317,7 +363,7 @@
     }
   }
   function buildSeo(){
-    const c=cfg, e=series[series.length-1], y0=c.start.slice(0,4), y1=e.date.slice(0,4);
+    const c=cfg, e=series[series.length-1], y0=c.start.slice(0,4), y1=e.date.slice(0,4), a=c.asset, N=a.name;
     const span=Math.max(1,Math.round((new Date(e.date)-new Date(series[0].date))/31557600000));
     const gain=e.invested>0?(e.value/e.invested-1)*100:0, profit=e.value-e.invested;
     const fin=e.value>=1000?compact(e.value):money(e.value);
@@ -326,36 +372,38 @@
     const upTo=c.end>=todayUTC()?"Today":"in "+y1, a0=money(c.init), r0=money(c.recAmt);
     const rs=c.init>0?`${a0} + ${r0} ${per}`:`${r0} ${per}`;
     titles=(c.rec?[
-      `${rs} in Bitcoin Since ${y0}: ${fin} Result`,
-      `What If You Bought Bitcoin ${r0} ${perL} Since ${y0}?`,
-      `POV: You DCA'd ${rs} Into Bitcoin (${y0}-${y1})`,
-      `Bitcoin DCA Simulation: ${rs} for ${span} Years`,
-      `${rs} in Bitcoin for ${span} Years = ${fin}?`
+      `${rs} in ${N} Since ${y0}: ${fin} Result`,
+      `What If You Bought ${N} ${r0} ${perL} Since ${y0}?`,
+      `POV: You DCA'd ${rs} Into ${N} (${y0}-${y1})`,
+      `${N} DCA Simulation: ${rs} for ${span} Years`,
+      `${rs} in ${N} for ${span} Years = ${fin}?`
     ]:[
-      `What If You Invested ${a0} in Bitcoin in ${y0}?`,
-      `${a0} in Bitcoin in ${y0} = ${fin} ${upTo}`,
-      `POV: You Put ${a0} in Bitcoin in ${y0}`,
-      `${a0} Bitcoin Investment (${y0}-${y1}): What Happened?`,
-      `I Simulated ${a0} in Bitcoin for ${span} Years`
+      `What If You Invested ${a0} in ${N} in ${y0}?`,
+      `${a0} in ${N} in ${y0} = ${fin} ${upTo}`,
+      `POV: You Put ${a0} in ${N} in ${y0}`,
+      `${a0} ${N} Investment (${y0}-${y1}): What Happened?`,
+      `I Simulated ${a0} in ${N} for ${span} Years`
     ]).map(t=>t.slice(0,100));
     titleIdx=0;
     const plan=c.rec?(c.init>0?`${a0} on day one + ${r0} ${perL}`:`${r0} ${perL}`):`${a0} lump sum`;
     const d0=fullDate(series[0].date), d1=fullDate(e.date);
     const desc=[
-      `What if you invested in Bitcoin back in ${y0}? This historical simulation shows ${plan} from ${d0} to ${d1} growing to ${money(e.value)} (${gain>=0?"+":""}${gain.toLocaleString("en-US",{maximumFractionDigits:1})}%).`,
+      `What if you invested in ${N} back in ${y0}? This historical simulation shows ${plan} from ${d0} to ${d1} growing to ${money(e.value)} (${gain>=0?"+":""}${gain.toLocaleString("en-US",{maximumFractionDigits:1})}%).`,
       "","📊 THE NUMBERS",
       `• Plan: ${plan}`,`• Period: ${d0} → ${d1} (about ${span} years)`,
       `• Total invested: ${money(e.invested)}`,`• Value at the end: ${money(e.value)}`,
       `• ${profit>=0?"Profit":"Loss"}: ${money(Math.abs(profit))}`,
       "","Want a different amount, start date or timeline? Comment below and I'll simulate it next!",
-      "👍 Like and subscribe for more Bitcoin POV simulations.",
-      "","⚠️ DISCLAIMER: This is a hypothetical, hindsight-based simulation using historical BTC/USD daily prices (Coin Metrics), before fees, taxes and spreads. It is NOT my real trades or balance, not financial advice and not a prediction. Crypto is volatile and you can lose money. Do your own research.",
-      "","#Bitcoin #BTC #Shorts"
+      `👍 Like and subscribe for more ${N} POV simulations.`,
+      "","⚠️ DISCLAIMER: This is a hypothetical, hindsight-based simulation using historical daily prices, before fees, taxes and spreads. It is NOT my real trades or balance, not financial advice and not a prediction. Markets are volatile and you can lose money. Do your own research.",
+      "",`#${N.replace(/[^A-Za-z0-9]/g,"")} #${a.sym} #Shorts`
     ].join("\n").slice(0,4900);
-    const want=["bitcoin",`bitcoin ${y0}`,`bitcoin ${y0} to ${y1}`,`invest ${a0} in bitcoin`,"what if you invested in bitcoin","bitcoin pov","bitcoin investment","btc",
-      ...(c.rec?[`${r0} ${perL} bitcoin`,`${freq} bitcoin investing`,"bitcoin dca","dollar cost averaging bitcoin"]:[`${a0} bitcoin ${y0}`]),
-      `${span} years of bitcoin`,"bitcoin price history","bitcoin simulation","bitcoin returns","how much would bitcoin be worth","bitcoin shorts","crypto investing",
-      "bitcoin for beginners","bitcoin history","cryptocurrency","invest in bitcoin","bitcoin profit","btc price","crypto","bitcoin 10 years ago","bitcoin millionaire"];
+    const n=N.toLowerCase(), sy=a.sym.toLowerCase(), cr=a.type==="crypto";
+    const want=[n,`${n} ${y0}`,`${n} ${y0} to ${y1}`,`invest ${a0} in ${n}`,`what if you invested in ${n}`,`${n} pov`,`${n} investment`,sy,
+      ...(c.rec?[`${r0} ${perL} ${n}`,`${freq} ${n} investing`,`${n} dca`,`dollar cost averaging ${n}`]:[`${a0} ${n} ${y0}`]),
+      `${span} years of ${n}`,`${n} price history`,`${n} simulation`,`${n} returns`,`how much would ${n} be worth`,`${n} shorts`,
+      ...(cr?["crypto investing","cryptocurrency","crypto","bitcoin","crypto for beginners"]:["stock market","investing","nasdaq 100","stocks for beginners","long term investing","buy and hold"]),
+      "what if i invested","investing simulation","passive investing"];
     const tags=[]; for(const t of want){ if(tags.some(x=>x.toLowerCase()===t.toLowerCase())) continue; if(tagLen([...tags,t])<=480) tags.push(t); }
     $("seoTitle").value=titles[0]; $("seoDesc").value=desc; $("seoTags").value=tags.join(", ");
     $("seo").hidden=false; counters();
@@ -364,7 +412,7 @@
   // ---------- Export ----------
   function save(blob,ext){
     const a=document.createElement("a"), url=URL.createObjectURL(blob);
-    a.href=url; a.download=`bitcoin-pov-${cfg.start}-to-${cfg.end}.${ext}`;
+    a.href=url; a.download=`${cfg.asset.sym.toLowerCase()}-pov-${cfg.start}-to-${cfg.end}.${ext}`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),30000);
   }
   const loadMuxer=()=>window.Mp4Muxer?Promise.resolve():new Promise((res,rej)=>{
@@ -421,7 +469,7 @@
   }
 
   // ---------- Init ----------
-  const IDS=[["amount",amountInput],["start",startInput],["duration",durationInput],["recOn",recOn],["recAmt",recAmt],["every",everyEl],["unit",unitEl]];
+  const IDS=[["asset",assetEl],["amount",amountInput],["start",startInput],["duration",durationInput],["recOn",recOn],["recAmt",recAmt],["every",everyEl],["unit",unitEl]];
   for(const [k,el] of IDS){const v=ls.get("btc_pov_"+k); if(v!==null){if(el.type==="checkbox")el.checked=v==="1";else el.value=v;}}
   endInput.max=todayUTC(); endInput.value=todayUTC(); startInput.max=todayUTC();
   const syncRec=()=>recWrap.classList.toggle("on",recOn.checked);

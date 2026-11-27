@@ -1,21 +1,27 @@
-# Bitcoin POV Video Maker
+# POV Investing Video Maker
 
-A single-file web tool that turns a **historical Bitcoin simulation** into a 9:16 "POV: You invested…" video for YouTube Shorts, Reels and TikTok. Open `index.html` in a modern browser. No install or build step.
+A web tool that turns a **historical investing simulation** (Bitcoin, the top ~100 coins, or Nasdaq-100 stocks) into a 9:16 "POV: You invested…" video for YouTube Shorts, Reels and TikTok. Open `index.html` in a modern browser. Keep `logos.js` in the same folder (it holds the coin and company logos). No install or build step.
 
 > **This is a simulation, not a record of real investments.** Read the [Disclaimer](#disclaimer) before publishing anything made with it.
 
 ## How to use
 
 1. Open `index.html` (double-click it, or use the GitHub Pages link if enabled). You need an internet connection.
-2. Enter a **starting amount** (USD), a **start date** and an **end date** (UTC, default today).
+2. Pick an **asset** (crypto or Nasdaq-100 stock). Enter a **starting amount** (USD), a **start date** and an **end date** (UTC, default today).
 3. *(Optional)* Tick **Also invest regularly**, then set an amount and an interval (every N days, weeks, months or years). Set the starting amount to `0` for a recurring-only plan.
 4. Choose a **video length** and click **Generate video** to preview the animation. Use **Replay** to watch it again.
-5. After generating, a **YouTube title, description and tags** panel appears. It is written from your values and dates and stays within YouTube's limits (title 100, description 5,000, tags 500 characters). Edit it, copy it, and keep the "simulation" wording.
-6. Click **Export MP4**. The file is the selected length plus 1 second held on the final result. Keep the tab open while it renders.
+5. Click **Export MP4**. The file is the selected length plus 1 second held on the final result. Keep the tab open while it renders.
+
+## Supported assets
+
+- **Crypto:** a hard-coded snapshot of roughly the top 100 coins by market cap (stablecoins and wrapped tokens left out). Rankings change, so edit the list in `index.html` when you need to.
+- **Stocks:** a snapshot of the Nasdaq-100 companies.
+- **Logos:** stored in `logos.js` as small embedded images, so they work offline and the video export stays clean. Coins from the `spothq/cryptocurrency-icons` and `@web3icons/core` sets, and stocks from `nvstly/icons`, are included. Any asset without a logo shows a coloured ticker badge.
+- If an asset's data starts after your chosen start date, the start date moves to the first available day and the status line says so.
 
 ## How the numbers work
 
-- Prices are daily BTC/USD closes (UTC) from the [Coin Metrics Community API](https://docs.coinmetrics.io/), with CryptoCompare as a backup. If the end date is today, a live spot price (Coinbase, then Kraken, Binance or CoinGecko) is added as the last point.
+- Bitcoin prices are daily BTC/USD closes (UTC) from the [Coin Metrics Community API](https://docs.coinmetrics.io/), with CryptoCompare as a backup. If the end date is today, a live spot price (Coinbase, then Kraken, Binance or CoinGecko) is added as the last point. Other coins use CryptoCompare daily closes and live prices. Stocks use split-adjusted daily closes from Yahoo Finance (price only, no dividends) fetched through public data proxies, which can be slow or unavailable.
 - Each purchase is made at the first available price on or after its scheduled date. Value = coins held × price. Gain is measured against the total amount invested.
 - Fees, taxes, spreads, slippage and inflation are **not** included. Real results would differ.
 - Chart axes abbreviate large values (K, M, B). The final result is always shown in full.
@@ -35,4 +41,4 @@ This section is a request and a statement of intent. It is **not** an extra cond
 
 ## License
 
-[MIT](LICENSE) © 2026 Broke Innovation. Third-party data providers have their own terms of use.
+[MIT](LICENSE) © 2026 Broke Innovation. Company names and logos belong to their owners and are used only to label the simulation; this project is not affiliated with or endorsed by any of them. Third-party data providers have their own terms of use.
